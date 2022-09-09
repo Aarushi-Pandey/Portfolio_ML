@@ -31,23 +31,25 @@ double find_mean(std::vector<double> &input) {
 // 3. a function to find the median of a numeric vector
 double find_median(std::vector<double> &input)
 {
-    sort(input.begin(), input.end());
-    int numObservations = input.size();
+    std::vector<double> sorted_input(input);
+    sort(sorted_input.begin(), sorted_input.end());
+    int numObservations = sorted_input.size();
     if (numObservations % 2 == 1) { // if number of vector elements is odd
         //cout << input[numObservations/2] << endl;
-        return input[numObservations/2];
+        return sorted_input.at(numObservations/2);
     } else {
-        double median = ( input[numObservations/2] + input[numObservations/2 + 1] ) / 2;
+        double median = ( sorted_input.at(numObservations/2) + sorted_input.at(numObservations/2 + 1) ) / 2;
         return median;
     }
 }
 
 // 4. a function to find the range of a numeric vector
 double find_range(std::vector<double> &input) {
-    sort(input.begin(), input.end());
-    int numObservations = input.size();
+    std::vector<double> sorted_input(input);
+    sort(sorted_input.begin(), sorted_input.end());
+    int numObservations = sorted_input.size();
     // cout << input[numObservations-1] << " " << input[0] << endl;
-    return input[numObservations-1] - input[0];
+    return sorted_input.at(numObservations-1) - sorted_input.at(0);
 } 
 
 // 5. a function to find the covariance between rm and medv
@@ -56,16 +58,19 @@ double find_covariance(std::vector<double> &rm, std::vector<double> &medv) {
     double mean_rm = find_mean(rm);
     double mean_medv = find_mean(medv);
 
-    double product = 1;
+    double sum = 0;
+
     for (int i = 0; i < rm.size(); i++) {
         // calculating difference between x and mean(x) AND y and mean(y)
         double diff_rm = rm.at(i) - mean_rm;
         double diff_medv = medv.at(i) - mean_medv;
 
         // calculating sum of products of differences
-        product += diff_rm* diff_medv;
-    }   
-    return product / (rm.size() - 1);
+        sum += diff_rm* diff_medv;
+
+    }  
+    
+    return sum / (rm.size() - 1);
 }
 
 double find_correlation(std::vector<double> &rm, std::vector<double> &medv) {
@@ -82,9 +87,12 @@ double find_correlation(std::vector<double> &rm, std::vector<double> &medv) {
         double diff_rm = rm.at(i) - mean_rm;
         double diff_medv = medv.at(i) - mean_medv;
 
+        //cout << diff_rm << " " << diff_medv << endl;
         // calculating sum of products of differences
         sum_medv += diff_medv * diff_medv;
         sum_rm += diff_rm * diff_rm;
+
+        //cout << sum_rm << " " << sum_medv << endl;
     } 
 
     double var_squared_rm = sum_rm / (rm.size() - 1);  
@@ -92,6 +100,9 @@ double find_correlation(std::vector<double> &rm, std::vector<double> &medv) {
 
     double var_rm = sqrt(var_squared_rm);
     double var_medv = sqrt(var_squared_medv);
+
+    //cout << var_rm << " " << var_medv << endl;
+    //cout << var_squared_rm << " " << var_squared_medv << endl;
 
     return covar / (var_rm * var_medv);
 }
