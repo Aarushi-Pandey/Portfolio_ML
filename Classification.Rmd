@@ -1,0 +1,189 @@
+---
+title: "Classification"
+output: html_notebook
+---
+
+3. Linear models for classification find a decision boundary between classes. In logistic regression, our target variable is qualitative: we want to know what class an observation is in. In the most common classification scenario, the target variable is a binary output so that we classify into one class or the other. It is a linear (parametric) algorithm which has low variance but high bias. Logistic regression performs well on larger data.
+  Naive Bayes is a popular classification algorithm. The mathematical foundations of Naive Bayes go back to the 18th Century and the mathematician and minister, Thomas Bayes, who formalized this probabilistic equation that bears his name [aka posterior = (likelihood × prior) / marginal]. The algorithm makes the simplifying assumption that all the predictors are independent, which is usually not true but works well (and so handles high dimensions well). It performs well on smaller data and has a lower variance than logistic regression. However, it has a higher bias and the naive assumption may limit the performance of the algorithm if the predictors are not independent.
+
+4. This notebook explores credit card data from [Kaggle](https://www.kaggle.com/datasets/mariosfish/default-of-credit-card-clients)
+
+Load the heart_disease.csv file. 
+```{r}
+df <- read.csv("credit_card.csv")
+str(df)
+```
+
+a. Divide df into 80/20 train/test
+
+```{r}
+set.seed(1234)
+i <- sample(1:nrow(df), nrow(df)*0.8, replace = FALSE)
+train <- df[i,]
+test <- df[-i,]
+
+```
+
+b. Data Exploration
+
+i. List the column names
+
+dpnm is the target variable and the rest are predictors. 
+```{r}
+names(train)
+```
+ii. See the first 5 rows
+
+```{r}
+head(train, n=5)
+```
+
+iii. Check the number of NAs in each column.
+
+```{r}
+sapply(train, function(x) sum(is.na(x)))
+```
+There are no NAs in this dataset. This means we do not have to delete/modify any rows.
+
+iv. Converting columns into factors.
+
+```{r}
+#str(df)
+train$MARRIAGE = factor(train$MARRIAGE)
+train$EDUCATION = factor(train$EDUCATION)
+train$SEX = factor(train$SEX)
+str(train)
+
+test$MARRIAGE = factor(test$MARRIAGE)
+test$EDUCATION = factor(test$EDUCATION)
+test$SEX = factor(test$SEX)
+```
+
+The MARRIAGE (4 possible values), EDUCATION (7 possible values) and SEX (2 possible values) columns can be turned into factors from integers.
+
+v. Checking distribution of levels in MARRIAGE, EDUCATION, and SEX columns.
+
+```{r}
+summary(train$SEX)
+summary(train$MARRIAGE)
+summary(train$EDUCATION)
+```
+
+There are about a third more people of gender "2" than "1". 
+Most people's marriage status is either "1" or "2", with only a couple hundred being "0" and "3" combined.
+The education level is mostly skewed towards the "1" and "2" levels, with some in "3" and the others in "4", "5", "6", and "0".
+
+c. Creating informative graphs using training data.
+
+i. Explore distribution of AGE and dpnm (our target variable).
+
+```{r warning=FALSE}
+opar <- par()
+par(mfrow=c(1,2))  # plots show up side by side
+hist(train$AGE)
+hist(train$dpnm)   # the model may be biased as there are triple the 0s as 1s.
+par(opar)
+```
+
+Age is (understandably) skewed to the left, with most people being around the ages between 25 and 40.
+Any model made from this data may be biased as there are triple the 0s as 1s.
+
+d. Simple logistic regression model
+
+```{r}
+glm1 <- glm(dpnm~LIMIT_BAL+SEX+MARRIAGE+PAY_1+PAY_2+PAY_3+AGE+BILL_AMT1+BILL_AMT2+PAY_AMT1+PAY_AMT2+PAY_AMT4, data=train, family=binomial)
+summary(glm1)
+```
+
+The deviance residuals are not small, which is expected for a simple logistic regression model like this. Considering the fact that dpnm can only be 0 or 1, the maximum residual of 3.2335 may seem alarming but is normal. The model has 2 dummy variables related to SEX, due to it being a predictor with factors. Their estimates are in relation to the estimate made by the first factor level of SEX (where EDUCATION = 1). For example, SEX1 is -1.026e-01 units away from SEX0. I have only included the significant predictors which all have one or more "*" next to them. The null deviance reduced from 25433 to 22379, which is a small decrease. 
+
+e. Naive Bayes model
+
+```{r}
+library(e1071)
+nb1 <- naiveBayes(dpnm~LIMIT_BAL+SEX+MARRIAGE+PAY_1+PAY_2+PAY_3+AGE+BILL_AMT1+BILL_AMT2+PAY_AMT1+PAY_AMT2+PAY_AMT4, data=train)
+nb1
+```
+First, the overall probability of dpnm being 0 or 1 is shown, and then conditional probabilities of each predictor used in the model are shown. [The mathematical foundations of Naive Bayes go back to the 18th Century and the mathematician and minister, Thomas Bayes, who formalized this probabilistic equation that bears his name [aka posterior = (likelihood × prior) / marginal]. The algorithm makes the simplifying assumption that all the predictors are independent, which is usually not true but works well (and so handles high dimensions well)]. So for the predictors that are factors, the probabilities for having a value of 0 or 1 given each level is printed. For example, if the SEX is 1, the probability of 0 is 0.3845371 and the probability of 1 is 0.4284108. In addition, if SEX is 2 the probability of 0 is  0.6154629 and the probability of 1 is 0.6154629. For the predictors that are not factors, the mean and then standard deviation considering the dpnm values of 0 and 1 are displayed.
+
+f. Predict and test models
+
+Logistic regression:
+```{r}
+#library("psych")
+#library(irr)
+#install.packages("irr")
+probs1 <- predict(glm1, newdata=test, type="response")
+pred1 <- ifelse(probs1>0.5, 1, 0)
+
+mean(pred1==as.integer(test$dpnm)) #accuracy
+cm <- table(pred1, as.integer(test$dpnm)) #confusion matrix
+cm
+(4582)/(4582+118) #sensitivity/recall
+(289)/(289+1011) #specificity
+(4582)/(4582+1011) #precision
+p0 <- (4582+289)/6000
+p1 <- (4582+1011)/6000
+p2 <- (4582+118)/6000
+p3 <- p1 * p2
+#p3
+p4 <- (118+289)/6000
+p5 <- (1011+289)/6000
+p6 <- p4 * p5
+cohen_kappa = (p0 - (p3+p6)) / (1-(p3+p6))
+cohen_kappa  # fair agreement
+
+#ROC and AUC
+#install.packages("ROCR")
+library("ROCR")
+pr1 <- prediction(probs1, test$dpnm)
+prf1 <- performance(pr1, measure="tpr", x.measure="fpr")
+plot(prf1)
+
+#MCC
+(4582*289-1011*118)/sqrt((4582+1011)*(4582+118)*(289+1011)*(118+289))  #0.323
+
+```
+
+Naive Bayes:
+```{r}
+probs2 <- predict(nb1, newdata=test, type="raw")
+pred2 <- ifelse(probs2>0.5, 1, 0)
+pred2 <- apply(pred2==1, 1, function(x) {
+                       if(any(x)) {
+                            as.integer(names(which(x)))
+                          }
+                       else NA
+                    })
+#summary(probs2)
+mean(pred2==as.integer(test$dpnm))  #accuracy
+table(pred2, test$dpnm)  #confusion matrix
+(3729)/(3729+971) #sensitivity/recall
+(787)/(787+513) #specificity
+(3729)/(3729+513) #precision
+p02 <- (3729+787)/6000
+p12 <- (3729+513)/6000
+p22 <- (3729+971)/6000
+p32 <- p12 * p22
+#p32
+p42 <- (971+787)/6000
+p52 <- (513+787)/6000
+p62 <- p42 * p52
+cohen_kappa = (p02 - (p32+p62)) / (1-(p32+p62))
+cohen_kappa  # fair agreement
+
+#ROC and AUC
+#install.packages("ROCR")
+library("ROCR")
+pr2 <- prediction(pred2, test$dpnm)
+prf2 <- performance(pr2, measure="tpr", x.measure="fpr")
+plot(prf2)
+
+#MCC
+(3729*787-513*971)/sqrt((3729+513)*(3729+971)*(787+513)*(971+787))  #0.361
+```
+  The accuracy of the logistric regression model is greater than that of Naive Bayes in this case (81% compared to 75%). This might be because logistic regression is better with larger datasets. Looking at the confusion matrices of both the models, the sensitivity is much greater for the first model (~97%) than the second (~79%). Specificity of both the models are 0.22 and 0.60, which is a great difference. Precision is 82% and 88% respectively, and cohen kappa is 0.26 and 0.35. (The greater the kappa value, the better. In this case, it is fair agreement.) The ROCs for both the models are similarly good, with the logistic regression model having more area under it (AUC). The MCC values for the models are 0.323 and 0.361 respectively, which is less than accuracy but accounts for class distribution (so the accuracy was adjusted based on the number of 0s and 1s in test$dpnm). It is slightly greater for the second model. The Naive Bayes model was less accurate (as it does better on smaller datasets) which might have affected the other metrics. As mentioned before, logistic regression is better with larger datasets. 
+  
+g. Naive Bayes algorithm makes the simplifying assumption that all the predictors are independent, which is usually not true but works well (and so handles high dimensions well). It performs well on smaller data and has a lower variance than logistic regression. However, it has a higher bias and the naive assumption may limit the performance of the algorithm if the predictors are not independent. Logistic regression is a linear (parametric) algorithm which has low variance but high bias. Logistic regression performs well on larger data compared to smaller data. Assuming linearity between predictors and target variable might be the wrong assumption sometimes.
+
+h. Accuracy is the number of correct predictions over the total number of examples/data rows. This is the simplest and most common metric for classification, but there might be cases when the calculated accuracy is not correct (due to external factors like an imbalanced dataset affecting the model). A confusion matrix is a table or predictions and true values. It is a more complete report than accuracy and can be used to derive other useful classification metrics. The sensitivity measures the true positive rate while specificity measures the true negative rate. They help to quantify the extent to which a given class was misclassified. However, high sensitivity does not help to exclude false positives, and something similar can be said about high specificity. (Cohen's) Kappa adjusts accuracy to account for correct prediction by chance (in order to reduce the probability that we guessed right by chance) and is often used to quantify agreement between two annotators of data. However, the Kappa paradox prevents it from being a perfect metric. ROC (Receiver Operating Characteristics) curve shows the tradeoff between predicting true positives while avoiding false positives. (We want to see the classifier shoot up and leave little space at the top left.) A related metric is AUC, the area under the curve. AUC values range from 0.5 for a classifier with no predictive value to 1.0 for a perfect classifier. This makes us able to understand how well our model works. However, there is a way to trick the AUC ROC metric: dividing all the predictions by 100 will keep the same AUC ROC. MCC (Matthew's correlation coefficient) accounts for differences in class distribution (which accuracy does not) and so is an improvement over it. However, it can only be used for binary classification.
