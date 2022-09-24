@@ -1,8 +1,13 @@
 ---
 title: "Regression"
-output: html_notebook
+output: 
+  html_notebook: default
+  pdf_document: default
+author: Aarushi Pandey
+date: 9/22/2022
 ---
 
+### About Linear Regression
 1. In linear regression, we wish to find the relationship between predictor values and a target value in the form of a linear relationship. This linear relationship can be defined by parameters w and b, with w, the slope of the line, quantifying the amount that y changes with changes in x, and b serving as an intercept. Linear regression is a relatively simple and powerful model. However, this algorithm has a bias: it wants to see a line no matter what the data is (even if a line should not exist). Some other disadvantages could be interaction effects, confounding variables, and hidden variables.
 
 2. This notebook explores song data from [Kaggle](https://www.kaggle.com/datasets/yasserh/song-popularity-dataset)
@@ -13,8 +18,8 @@ df <- read.csv("song_data.csv")
 str(df)
 ```
 
-a. Divide df into 80/20 train/test
 
+#### a. Divide df into 80/20 train/test
 ```{r}
 set.seed(1234)
 i <- sample(1:nrow(df), nrow(df)*0.8, replace = FALSE)
@@ -23,7 +28,7 @@ test <- df[-i,]
 
 ```
 
-b. Data Exploration
+#### b. Data Exploration
 
 i. List the column names
 
@@ -44,7 +49,7 @@ sapply(train, function(x) sum(is.na(x)))
 ```
 There are no NAs in this dataset. This means we do not have to delete/modify any rows.
 
-iv. Converting columns into factors.
+iv. Converting columns into factors in train and test data.
 
 ```{r}
 #str(df)
@@ -72,7 +77,7 @@ The key levels are mostly balanced, with "3" being the least key value.
 The time signature levels are really skewed towards the "4" value.
 It is more common to have the audio mode of 1 than 0.
 
-c. Creating informative graphs using training data.
+#### c. Creating informative graphs using training data.
 
 i. Explore distribution of song_popularity and danceability.
 
@@ -92,15 +97,15 @@ plot(train$time_signature,train$song_popularity)
 ```
 The average popularity of songs with different time signatures is similar but the distribution varies. Songs with time signature of 1 have lower popularity, and songs with time signature of 5 have higher popularity.
 
-d. Simple linear regression model
+#### d. Simple linear regression model
 
 ```{r}
 lm1 <- lm(song_popularity~danceability, data=train)
 summary(lm1)
 ```
-The residuals are not small, which is expected for a simple regression model. At most, there is a difference of about 58 from the predicted song popularity score and the actual score, which is large considering the range of scores (0-100). The p-value is low (which means the high confidence) for danceability, which is good after comparing it to the significant codes section. [p-value is the probability of observing a larger t-statistic if the null hypothesis is true.] This means that it is a great predictor for the popularity score, and other predictors can be used to improve the model. From the coefficients, the linear equation derived from the model can be equated to be song popularity = 15.02 * danceability + 43.37. Residual standard error (RSE), which measures the lack of fit of the model, is 21.79 in this case. This is not a small value, which is further proved in the R-squared value of 0.01. [R-squared should be as close to 1 as possible.] At least the overall p-value is still low. The F-statistic provides evidence against the null hypothesis, and is not low in this model.
+The residuals are not small, which is expected for a simple regression model. At most, there is a difference of about 58 from the predicted song popularity score and the actual score, which is large considering the range of scores (0-100). The p-value is low (which means there is high confidence) for danceability, which is good after comparing it to the significant codes section. [p-value is the probability of observing a larger t-statistic if the null hypothesis is true.] This means that it is a great predictor for the popularity score, and other predictors can be used to improve the model. From the coefficients, the linear equation derived from the model can be equated to be song popularity = 15.02 * danceability + 43.37. Residual standard error (RSE), which measures the lack of fit of the model, is 21.77 in this case. This is not a small value, which is further proved in the R-squared value of 0.01. [R-squared should be as close to 1 as possible.] At least the overall p-value is still low. The F-statistic provides evidence against the null hypothesis, and is not low in this model.
 
-e. Plotting residuals
+#### e. Plotting residuals
 
 ```{r}
 plot(lm1)
@@ -111,13 +116,15 @@ There are 4 different graphs as output:
 
 i. Residuals vs fitted- shows if residuals have non-linear patterns. (There could be a non-linear relationship between predictor variables and an outcome variable and the pattern could show up in this plot if the model doesn’t capture the non-linear relationship. If you find equally spread residuals around a horizontal line without distinct patterns, that is a good indication you don’t have non-linear relationships.) There is no distinctive pattern which is good.
 
-ii. Normal Q-Q- shows if residuals are normally distributed. It’s good if residuals are lined well on the straight dashed line, which is the case here. Of course it's not a perfect straight line.
+ii. Normal Q-Q- shows if residuals are normally distributed. It’s good if residuals are lined well on the straight dashed line, which is the case here. Of course the residuals are not in a perfectly straight line.
 
-iii. Scale-location- shows if residuals are spread equally along the ranges of predictors. (This is how you can check the assumption of equal variance (homoscedasticity). It’s good if you see a horizontal line with equally (randomly) spread points.) The residuals appear to be scattered everywhere which is good.
+iii. Scale-location- shows if residuals are spread equally along the ranges of predictors. (This is how you can check the assumption of equal variance (homoscedasticity). It’s good if you see a horizontal line with equally (randomly) spread points.) The residuals appear to be scattered (mostly) everywhere which is good.
 
 iv. Residuals vs Leverage- helps us to find influential cases (i.e., subjects) if any. (We watch out for outlying values at the upper right corner or at the lower right corner. Those spots are the places where cases can be influential against a regression line.) Cook's line is not visible in this case (because all cases are well inside Cook's line) which means there are no cases that can be influential against a regression line.
 
-f. Multiple linear regression model (using all predictors except song_name)
+I used  https://data.library.virginia.edu/diagnostic-plots/ for information about residual graphs to answer this question.
+
+#### f. Multiple linear regression model (using all predictors except song_name)
 
 ```{r}
 #str(df)
@@ -132,7 +139,7 @@ plot(lm2)
 par(mfrow=c(1,1))
 ```
 
-g. Third linear model to try to improve results
+#### g. Third linear model to try to improve results
 
 ```{r}
 str(df)
@@ -141,9 +148,6 @@ summary(lm3)
 #?predict
 pred3 <- predict(lm3, newdata=test)
 summary(pred3)
-#cor(pred1, test$song_popularity)
-#sqrt(mean((pred1-test$song_popularity)^2))
-#range(test$song_popularity)
 ```
 
 Used all predictors except song name, loudness, audio mode, and tempo after observing their significance in linear regression models.
@@ -155,34 +159,36 @@ plot(lm3)
 par(mfrow=c(1,1))
 ```
 
-h. There is a minor difference between the residual plot of the first model and the others. On the other hand, there are differences in the logistic regression models. The minimum residual for the first model was -57.938, and was -65.625 and -65.475 for the second and third models. The maximum residuals are about the same, with a difference of about 1 (in the popularity score). In all the three models, danceability was a significant predictor (with similar p-values) but its coefficient in the regression equation was different (~15 for the first model and ~1.5e+01 for the others). Obviously, there were other significant predictors in the second and third model, with the third model removing the predictors that the model felt were not helpful (loudness, audio mode, and tempo).
-  In the second and third models, the most significant predictors are danceability, instrumentalness, and audio valence. Acousticness and liveness are also important predictors. Other predictors like song duration, energy, key, and speechiness are not as important, but removing them from the model would decrease the accuracy. The R^2 values for the models are 0.01148, 0.04461, and 0.04444 respectively. There is a significant increase in the R^2 value from the first model, which is great. Unfortunately, I was unable to find a combination of predictors that improved the model to have a greater value of R^2 that is closer to 1. The residual standard error is similar in all models, but the F-statistic is different (it changes from 175.9 to 29.14). The overall p-value is small in all the models, which is good.
+#### Comparing results
+
+h. There is a minor difference between the residual plot of the first model and the others. On the other hand, there are differences in the logistic regression models. The minimum residual for the first model was -57.938, and was -65.625 and -65.475 for the second and third models. The maximum residuals are about the same, with a difference of about 1 unit (which in this case is popularity score). In all the three models, danceability was a significant predictor (with similar p-values) but its coefficient in the regression equation was different (~15 for the first model and ~1.5e+01 for the others). Obviously, there were other significant predictors in the second and third model, with the third model removing the predictors that the second model suggested were not helpful (loudness, audio mode, and tempo) since they didn't have a '.' or '*' after them.
+  In the second and third models, the most significant predictors are danceability, instrumentalness, and audio valence. Acousticness and liveness are also important predictors. Other predictors like song duration, energy, key, and speechiness are not as important, but removing them from the model would decrease the accuracy. The R^2 values for the models are 0.01148, 0.04461, and 0.04444 respectively. There is a significant increase in the R^2 value from the first model, which is great. Unfortunately, I was unable to find a combination of predictors that improved the model to have a greater value of R^2 that is closer to 1. The residual standard error is similar in all models, but the F-statistic is different (it changes from 175.9 to 29.14). The overall p-value is small in all the models, which is ideal.
   I think the second model is better because it has all the predictors (as it seems that most predictors are greatly important in predicting the song popularity) and has the greatest R-squared value. The third model is not much different, but with less predictors, so it might predict the test values better.
   
-i. Predict and evaluate on test data
+#### i. Predict and evaluate on test data for all models
 
 First model:
 ```{r}
 pred1 <- predict(lm1, newdata=test)
-cor(pred1, test$song_popularity)
-mean((pred1-test$song_popularity)^2)
-sqrt(mean((pred1-test$song_popularity)^2))
+cor(pred1, test$song_popularity)  #correlation
+mean((pred1-test$song_popularity)^2)  #mse
+sqrt(mean((pred1-test$song_popularity)^2))  #rmse
 ```
 
 Second model:
 ```{r}
-pred2 <- predict(lm2, newdata=test)
-cor(pred2, test$song_popularity)
-mean((pred2-test$song_popularity)^2)
-sqrt(mean((pred2-test$song_popularity)^2))
+pred2 <- predict(lm2, newdata=test)  
+cor(pred2, test$song_popularity)  #correlation
+mean((pred2-test$song_popularity)^2)  #mse
+sqrt(mean((pred2-test$song_popularity)^2))  #rmse
 ```
 
 Third model:
 ```{r}
 pred3 <- predict(lm3, newdata=test)
-cor(pred3, test$song_popularity)
-mean((pred3-test$song_popularity)^2)
-sqrt(mean((pred3-test$song_popularity)^2))
+cor(pred3, test$song_popularity)  #correlation
+mean((pred3-test$song_popularity)^2)  #mse
+sqrt(mean((pred3-test$song_popularity)^2))  #rmse
 ```
 
-The correlation is highest for the third model because the insignificant predictors have been removed. The second model has a similar correlation (since it had all of the same predictors plus a few more insignificant ones) but the first one is significantly less (due to only having one significant predictor). The mse is ~12 more in the first model compared to the second and third one, while the rmse amounts to about the same in each. It is interesting to note that the difference in predictions is about the same in all the models but the correlation varies. This might be because the second and third models have a greater difference in predicted and actual popularity for some test cases, while having higher accuracy overall.
+The correlation is highest for the third model because the insignificant predictors have been removed. The second model has a similar correlation (since it had all of the same predictors plus a few more insignificant ones) but the first one is significantly less (due to only having one significant predictor). The mse is ~12 more in the first model compared to the second and third one, while the rmse amounts to about the same in each. It is interesting to note that the difference in predictions (mse and rmse) is about the same in all the models but the correlation varies. This might be because the second and third models have a greater difference in predicted and actual popularity for some test cases, while having higher accuracy overall. So, those models might have a greater standard deviation compared to the first model.
