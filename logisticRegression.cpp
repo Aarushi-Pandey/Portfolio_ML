@@ -28,14 +28,16 @@ double model_accuracy(int numObservations, double probabilities[], vector<int> s
     return sum*1.0 / (numObservations-800);
 }
 
-double model_sensitivity(int numObservations, double probabilities[], vector<int> survived_test) {
+double model_specificity(int numObservations, double probabilities[], vector<int> survived_test) {
     int tp_sum = 0;
     int fn_sum = 0;
+    //int tp2 = 0;
+    //int fn2 = 0;
     for (int i=800; i< numObservations; i++) {
         if (probabilities[i-800] == 0 && probabilities[i-800] == survived_test[i-800]) {
             //cout << sum << endl;
             tp_sum += 1;
-        } else if (probabilities[i-800] == 0 && survived_test[i-800] == 1) {
+        } else if (probabilities[i-800] == 1 && survived_test[i-800] == 0) {
             fn_sum += 1;
         }
     }
@@ -45,14 +47,14 @@ double model_sensitivity(int numObservations, double probabilities[], vector<int
     return (double)tp_sum / (tp_sum+fn_sum);
 }
 
-double model_specificity(int numObservations, double probabilities[], vector<int> survived_test) {
+double model_sensitivity(int numObservations, double probabilities[], vector<int> survived_test) {
     int tn_sum = 0;
     int fp_sum = 0;
     for (int i=800; i< numObservations; i++) {
         if (probabilities[i-800] == 1 && probabilities[i-800] == survived_test[i-800]) {
             //cout << sum << endl;
             tn_sum += 1;
-        } else if (probabilities[i-800] == 1 && survived_test[i-800] == 0) {
+        } else if (probabilities[i-800] == 0 && survived_test[i-800] == 1) {
             fp_sum += 1;
         }
     }

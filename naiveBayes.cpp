@@ -6,15 +6,10 @@
 #include <chrono>
 using namespace std;
 
-double sigmoid(double x);
 double model_accuracy(int numObservations, double probabilities[], vector<int> survived_test);
 double model_sensitivity(int numObservations, double probabilities[], vector<int> survived_test);
 double model_specificity(int numObservations, double probabilities[], vector<int> survived_test);
 double calc_age_lh(double v, double mean_v, double var_v);
-
-double sigmoid(double x) {
-    return 1 / (1 + exp(-x));
-}
 
 double model_accuracy(int numObservations, double probabilities[], vector<int> survived_test) {
     int sum = 0;
@@ -29,14 +24,14 @@ double model_accuracy(int numObservations, double probabilities[], vector<int> s
     return sum*1.0 / (numObservations-800);
 }
 
-double model_sensitivity(int numObservations, double probabilities[], vector<int> survived_test) {
+double model_specificity(int numObservations, double probabilities[], vector<int> survived_test) {
     int tp_sum = 0;
     int fn_sum = 0;
     for (int i=800; i< numObservations; i++) {
         if (probabilities[i-800] == 0 && probabilities[i-800] == survived_test[i-800]) {
             //cout << sum << endl;
             tp_sum += 1;
-        } else if (probabilities[i-800] == 0 && survived_test[i-800] == 1) {
+        } else if (probabilities[i-800] == 1 && survived_test[i-800] == 0) {
             fn_sum += 1;
         }
     }
@@ -46,14 +41,14 @@ double model_sensitivity(int numObservations, double probabilities[], vector<int
     return (double)tp_sum / (tp_sum+fn_sum);
 }
 
-double model_specificity(int numObservations, double probabilities[], vector<int> survived_test) {
+double model_sensitivity(int numObservations, double probabilities[], vector<int> survived_test) {
     int tn_sum = 0;
     int fp_sum = 0;
     for (int i=800; i< numObservations; i++) {
         if (probabilities[i-800] == 1 && probabilities[i-800] == survived_test[i-800]) {
             //cout << sum << endl;
             tn_sum += 1;
-        } else if (probabilities[i-800] == 1 && survived_test[i-800] == 0) {
+        } else if (probabilities[i-800] == 0 && survived_test[i-800] == 1) {
             fp_sum += 1;
         }
     }
@@ -65,7 +60,9 @@ double model_specificity(int numObservations, double probabilities[], vector<int
 
 double calc_age_lh(double v, double mean_v, double var_v) {
     double pi = 3.14;
-    return 1 / (sqrt(2*pi*var_v) * exp(-((v-mean_v) * (v-mean_v)) / (2 * var_v)));
+    //cout << sqrt(2*pi*var_v) << " " << exp(-((v-mean_v) * (v-mean_v)) / (2 * var_v)) << endl;
+    //cout << 1 / (sqrt(2*pi*var_v) * exp(-((v-mean_v) * (v-mean_v))) / (2 * var_v)) << endl;
+    return 1 / sqrt(2*pi*var_v) * exp(-((v-mean_v) * (v-mean_v)) / (2 * var_v));
 }
 
 int main(int argc, char** argv) {
@@ -278,9 +275,9 @@ int main(int argc, char** argv) {
     for (int j = 800; j < numObservations; j++) {
         int i = j - 800;
         double num_s = lh_pclass[1][pclass_test.at(i)-1] * lh_sex[1][sex_test.at(i)] * prior_prob_survived * calc_age_lh(age_test.at(i), age_mean[1], age_var[1]);
-        //cout << lh_pclass[1][pclass_test.at(i)-1] << " " << lh_sex[1][sex_test.at(i)] << " " << prior_prob_survived << " " << num_s << endl;
-        double num_p = lh_pclass[0][pclass_test.at(i)-1] * lh_sex[0][sex_test.at(i)] * prior_prob_survived * calc_age_lh(age_test.at(i), age_mean[0], age_var[0]);
-        //cout << num_s << " " << num_p << endl;
+        //cout << lh_pclass[0][pclass_test.at(i)-1] << " " << lh_sex[0][sex_test.at(i)] << " " << prior_prob_survived << " " << calc_age_lh(age_test.at(i), age_mean[0], age_var[0]) << " " << num_s << endl;
+        double num_p = lh_pclass[0][pclass_test.at(i)-1] * lh_sex[0][sex_test.at(i)] * prior_prob_perished * calc_age_lh(age_test.at(i), age_mean[0], age_var[0]);
+        //cout << num_p  << endl; // << " " << num_p << endl;
         double denominator = num_s + num_p;
         double prob_survived = num_s / denominator;
         double prob_perished = num_p / denominator;
@@ -288,6 +285,7 @@ int main(int argc, char** argv) {
         //cout << denominator << endl;
         raw[i][0] = prob_perished;
         raw[i][1] = prob_survived;
+        //cout << raw[i][0] << " " << raw[i][1] << endl;
     }
 
     double probabilities[MAX_LEN-800];    // final probabilities
@@ -299,7 +297,7 @@ int main(int argc, char** argv) {
         } else {
             probabilities[i-800] = 1;
         }
-        //cout << probabilities[i-800] << endl;
+        //cout << raw[i-800][0] << " " << raw[i-800][1] << " " << probabilities[i-800] << endl;
 
     }
 
