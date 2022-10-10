@@ -16,7 +16,7 @@ Perform data cleaning and data exploration on medium-sized data sets, perform ma
 
 You can see the [Regression document here](Regression.pdf) and the [Regression code here](Regression.Rmd)
 
-You can see the [Classification document here](Classification.pdf) and the [Classification code here](Classification.Rmd)
+You can see the [Classification document here](Linear_Models/Classification.pdf) and the [Classification code here](Classification.Rmd)
 
 ## ML Algorithms from Scratch
 Gain deeper understanding of machine learning algorithms by coding from scratch.
