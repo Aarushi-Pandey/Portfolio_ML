@@ -24,3 +24,7 @@ Gain deeper understanding of machine learning algorithms by coding from scratch.
 You can see the [Logistic Regression code here](logisticRegression.cpp) and the [Naive Bayes code here](naiveBayes.cpp).
 
 You can see the [report here](ML_Algorithms_from_scratch.docx).
+
+## Searching for Similarity (Group Project)
+
+You can see the [repo/code here](https://github.com/zaiquiriw/ml-similarties/tree/main).
