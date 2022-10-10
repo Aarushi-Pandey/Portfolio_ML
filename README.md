@@ -14,7 +14,7 @@ You can see the [document here](Data_Exploration.docx) and the [code here](data_
 ## Linear models
 Perform data cleaning and data exploration on medium-sized data sets, perform machine learning using linear models, and evaluate model performance.
 
-You can see the [Regression document here](Regression.pdf) and the [Regression code here](Regression.Rmd)
+You can see the [Regression document here](Linear_Models/Regression.pdf) and the [Regression code here](Regression.Rmd)
 
 You can see the [Classification document here](Linear_Models/Classification.pdf) and the [Classification code here](Classification.Rmd)
 
