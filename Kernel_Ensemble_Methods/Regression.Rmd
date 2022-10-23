@@ -1,0 +1,251 @@
+---
+title: "Regression"
+author: "Muhammad Shariq Azeem and Aarushi Pandey"
+date: "10/19/2022"
+output:
+  html_document: default
+  pdf_document: default
+    #html_notebook: default
+    #df_print: paged
+---
+
+---
+title: "Regression"
+author: "Muhammad Shariq Azeem and Aarushi Pandey"
+date: "10/19/2022"
+output: pdf_document
+---
+
+# Regression:
+
+### What is Our Data?
+This notebook explores song data from [Kaggle](https://www.kaggle.com/datasets/budincsevity/szeged-weather). In particular, this is a Hungary dataset.
+
+### Exploring Our Data
+
+Load the weatherHistory.csv file. 
+```{r}
+df <- read.csv("weatherHistory.csv")
+#df_temp <- df
+str(df)
+```
+
+Calculate difference in Apparent Temperature and Temperature and add it as new data field.
+```{r}
+df$Temperature.TempDiff <- df$Temperature..C. - df$Apparent.Temperature..C
+str(df)
+```
+
+Convert Precip.Type and Summary to factors (since they only have a few possible values)
+```{r}
+df$Precip.Type <- as.factor(df$Precip.Type)
+df$Summary <- as.factor(df$Summary)
+str(df)
+```
+
+Our goal is to see if we can see how other weather factors, such as Wind Speed and Humidity, relate to the difference between Apparent Temperature and actual Temperature. Though we identify apparent temperature as a very good predictor of the difference, we do not use this in this assignment as we are interested in exploring more the other factors that influence the disparity. 
+
+##a. We'll divide the data into train, test, and validate.
+```{r}
+set.seed(1234)
+spec <- c(train=.6, test=.2, validate=.2)
+i <- sample(cut(1:nrow(df),
+                nrow(df)*cumsum(c(0,spec)), labels=names(spec)))
+train <- df[i=="train",]
+test <- df[i=="test",]
+vald <- df[i=="validate",]
+```
+
+##b. Exploring training data:
+
+```{r}
+names(df)   # getting col names
+dim(df)   # getting number of rows and cols
+head(df)  # getting first 6 rows
+colMeans(df[4:11])   # calculating mean of linear cols
+```
+
+Since Loud.Cover col has a mean of 0, it might have NA values.
+```{r}
+colSums(is.na(df))
+sum(df$Loud.Cover)
+```
+
+In actuality, there are no NA values in Loud.Cover col. But since all the values there are 0, we will not gain much from using it in the prediction model. So we'll ignore it.
+
+```{r}
+summary(df)
+summary(df$Summary)  
+sum(df$Wind.Speed..km.h.==0)
+```
+
+It is unlikely that there is absolutely no wind so some of this data may not be accurate.
+
+We'll pull up some graphs to get a better idea of what we have to do, now. Yellow dots are null precipitation days, green is rain, and blue is snow.
+```{r}
+cor(df[4:7])
+boxplot(df$Temperature.TempDiff)
+boxplot(df$Humidity)
+boxplot(df$Wind.Speed..km.h.)
+plot(df$Temperature.TempDiff,df$Wind.Speed..km.h.,pch=21,bg=c("yellow","green","blue")[as.integer(df$Precip.Type)])  # lots of 0 values
+plot(df$Temperature.TempDiff,df$Humidity,pch=21,bg=c("yellow","green","blue")[as.integer(df$Precip.Type)])  # lots of 0 values
+plot(df$Temperature.TempDiff,df$Temperature..C.,pch=21,bg=c("yellow","green","blue")[as.integer(df$Precip.Type)])  # lots of 0 values
+```
+
+Now, we'll clean up the data according to what we found. We'll clean up only what is referenced, but we will delete what we are uncertain about, since we have such a large amount of data.
+```{r}
+df[,6:7][df[,6:7]==0] <- NA  # change 0s to NA values in Humidity and Wind Speed cols
+df[,13:13][df[,13:13]==0] <- NA  # change 0s to NA values in TempDiff col
+df <- na.omit(df)  # since we have enough data we can omit those which have NA values
+summary(df)
+#df_temp <- df
+```
+
+Make the graphs again.
+```{r}
+cor(df[4:7])
+boxplot(df$Temperature.TempDiff)
+boxplot(df$Humidity)
+boxplot(df$Wind.Speed..km.h.)
+plot(df$Temperature.TempDiff,df$Wind.Speed..km.h.,pch=21,bg=c("yellow","green","blue")[as.integer(df$Precip.Type)])  # lots of 0 values
+plot(df$Temperature.TempDiff,df$Humidity,pch=21,bg=c("yellow","green","blue")[as.integer(df$Precip.Type)])  # lots of 0 values
+plot(df$Temperature.TempDiff,df$Temperature..C.,pch=21,bg=c("yellow","green","blue")[as.integer(df$Precip.Type)])  # lots of 0 values
+```
+
+We'll clean up the train, test, and validate data again (removing the rows that had NA values).
+```{r}
+set.seed(1234)
+spec <- c(train=.6, test=.2, validate=.2)
+# SVM result vector too big for ~40k rows so halving dataset to ~20k rows
+df <- df[1:(nrow(df)/4),]
+i <- sample(cut(1:nrow(df),
+                nrow(df)*cumsum(c(0,spec)), labels=names(spec)))
+train <- df[i=="train",]
+test <- df[i=="test",]
+vald <- df[i=="validate",]
+```
+
+## c. SVM regression
+### Trying a linear kernel
+
+```{r}
+library(e1071)
+svm1 <- svm(Temperature.TempDiff~ Summary + Precip.Type + Temperature..C. + Humidity + Wind.Speed..km.h. + Wind.Bearing..degrees. + Visibility..km. + Loud.Cover + Pressure..millibars. , data=train, kernel="linear", cost=10, gamma=1, scale=TRUE)
+summary(svm1)
+pred1 <- predict(svm1, newdata=test)
+cor_svm1 <- cor(pred1, test$Temperature.TempDiff)
+mse_svm1 <- mean((pred1 - test$Temperature.TempDiff)^2)
+
+#Output results
+print("-------Linear kernel Model-------")
+print(paste("Correlation: ", cor_svm1))
+print(paste("MSE: ", mse_svm1))
+print(paste("RMSE: ", sqrt(mse_svm1)))
+```
+
+### Tune
+
+```{r}
+tune_svm1 <- tune(svm, Temperature.TempDiff~ Summary + Precip.Type + Temperature..C. + Humidity + Wind.Speed..km.h. + Wind.Bearing..degrees. + Visibility..km. + Loud.Cover + Pressure..millibars., data=vald[1:200,], kernel="linear",
+                  ranges=list(cost=c(0.1,1,10,100,1000),
+                             gamma=c(0.5,1,2,3,4)))
+summary(tune_svm1)
+```
+
+### Evaluate on best linear svm
+
+```{r}
+pred2 <- predict(tune_svm1$best.model, newdata=test)
+cor_svm1_tune <- cor(pred2, test$Temperature.TempDiff)
+mse_svm1_tune <- mean((pred2 - test$Temperature.TempDiff)^2)
+
+#Output results
+print("-------Best Linear kernel Model-------")
+print(paste("Correlation: ", cor_svm1_tune))
+print(paste("MSE: ", mse_svm1_tune))
+print(paste("RMSE: ", sqrt(mse_svm1_tune)))
+```
+
+### Try a polynomial kernel
+
+```{r}
+svm2 <- svm(Temperature.TempDiff~ Summary + Precip.Type + Temperature..C. + Humidity + Wind.Speed..km.h. + Wind.Bearing..degrees. + Visibility..km. + Loud.Cover + Pressure..millibars., data=train, kernel="polynomial", cost=10, gamma=1, scale=TRUE)
+summary(svm2)
+
+pred3 <- predict(svm2, newdata=test)
+cor_svm3 <- cor(pred3, test$Temperature.TempDiff)
+mse_svm3 <- mean((pred3 - test$Temperature.TempDiff)^2)
+
+#Output results
+print("-------Polynomial kernel Model-------")
+print(paste("Correlation: ", cor_svm3))
+print(paste("MSE: ", mse_svm3))
+print(paste("RMSE: ", sqrt(mse_svm3)))
+```
+
+### Tune
+
+```{r}
+tune_svm2 <- tune(svm, Temperature.TempDiff~ Summary + Precip.Type + Temperature..C. + Humidity + Wind.Speed..km.h. + Wind.Bearing..degrees. + Visibility..km. + Loud.Cover + Pressure..millibars., data=vald[1:200,], kernel="polynomial",
+                  ranges=list(cost=c(0.1,1,10,100,1000),
+                             gamma=c(0.5,1,2,3,4)))
+summary(tune_svm2)
+```
+
+### Evaluate on best polynomial svm
+
+
+```{r}
+pred4 <- predict(tune_svm2$best.model, newdata=test)
+cor_svm1_tune2 <- cor(pred4, test$Temperature.TempDiff)
+mse_svm1_tune2 <- mean((pred4 - test$Temperature.TempDiff)^2)
+
+#Output results
+print("-------Best Polynomial kernel Model-------")
+print(paste("Correlation: ", cor_svm1_tune2))
+print(paste("MSE: ", mse_svm1_tune2))
+print(paste("RMSE: ", sqrt(mse_svm1_tune2)))
+```
+
+### Try a radial kernel
+```{r}
+svm3 <- svm(Temperature.TempDiff~ Summary + Precip.Type + Temperature..C. + Humidity + Wind.Speed..km.h. + Wind.Bearing..degrees. + Visibility..km. + Loud.Cover + Pressure..millibars., data=train, kernel="radial", cost=10, gamma=1, scale=TRUE)
+summary(svm3)
+
+pred5 <- predict(svm3, newdata=test)
+cor_svm5 <- cor(pred5, test$Temperature.TempDiff)
+mse_svm5 <- mean((pred5 - test$Temperature.TempDiff)^2)
+
+#Output results
+print("-------Radial kernel Model-------")
+print(paste("Correlation: ", cor_svm5))
+print(paste("MSE: ", mse_svm5))
+print(paste("RMSE: ", sqrt(mse_svm5)))
+```
+
+### Tune
+```{r}
+tune_svm3 <- tune(svm, Temperature.TempDiff~ Summary + Precip.Type + Temperature..C. + Apparent.Temperature..C. + Humidity + Wind.Speed..km.h. + Wind.Bearing..degrees. + Visibility..km. + Loud.Cover + Pressure..millibars., data=vald[1:200,], kernel="radial",
+                  ranges=list(cost=c(0.1,1,10,100,1000),
+                             gamma=c(0.5,1,2,3,4)))
+summary(tune_svm3)
+```
+
+### Evaluate on best polynomial svm
+
+
+```{r}
+pred6 <- predict(tune_svm3$best.model, newdata=test)
+cor_svm1_tune3 <- cor(pred6, test$Temperature.TempDiff)
+mse_svm1_tune3 <- mean((pred6 - test$Temperature.TempDiff)^2)
+
+#Output results
+print("-------Best Radial kernel Model-------")
+print(paste("Correlation: ", cor_svm1_tune3))
+print(paste("MSE: ", mse_svm1_tune3))
+print(paste("RMSE: ", sqrt(mse_svm1_tune3)))
+```
+
+## d. Analysis
+  Out of all the kernel models, linear kernel had the best correlation (0.898) followed by the polynomial kernel (0.246) and radial kernel (0.057). The best model for linear and polynomial kernels had the cost as 0.1 and gamma as 0.5, while the best model for radial kernel had the cost as 10 and the gamma as 0.5. (This shows that low gamma values produces better results for this data set for all the kernels.) The MSEs for the kernels (from lowest to highest) are 1.27 (linear kernel), 2.696 (radial kernel), and 69984172304863862784 (polynomial kernel). I'm unsure why the polynomial kernel is such a high value but it might be due to highly inaccurate predictions for some of the temperature differences. 
+  As the initial relationship between the predictors and predicted value was linear, it is of no surprise that linear kernel does the best and radial kernel the worst. (As the polynomial and radial kernels were looking for a relationship which didn't exist, they did not do as well.)

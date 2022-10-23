@@ -1,0 +1,133 @@
+---
+title: "Ensemble Techniques"
+author: "Muhammad Shariq Azeem and Aarushi Pandey"
+date: "10/16/2022"
+output:
+  html_document:
+    html_notebook: default
+    #df_print: paged
+---
+
+---
+title: "Ensemble Techniques"
+author: "Muhammad Shariq Azeem and Aarushi Pandey"
+date: "10/15/2022"
+output: pdf_document
+---
+
+# Ensemble Techniques:
+
+## Data:
+
+For this assignment, I selected a data set that contains information about the room environment, such as, room temperature, humidity, CO2 levels, etc. I need to use that information to decide if the room is occupied or not.
+
+Source for the data: <https://archive.ics.uci.edu/ml/datasets/Occupancy+Detection+#>
+
+Note: The data sets provided through the link were not meeting the "at least 10K rows" requirement, so I used Excel to combine two data sets into one.
+
+### Cleaning the data:
+
+-   Got rid of the date column because I don't need that for my model.
+-   Converted 'Occupancy' attribute to a factor.
+
+```{r}
+df <- read.csv("data.csv", header=T)
+df <- df[,c(2,3,4,5,6,7)]
+df$Occupancy <- factor(df$Occupancy)
+set.seed(1234)
+i <- sample(1:nrow(df), nrow(df)*0.8, replace = FALSE)
+train <- df[i,]
+test <- df[-i,]
+```
+
+## Perform Decision Tree as a baseline:
+
+```{r}
+library(tree)
+require(mccr)
+time1 <- Sys.time()
+tree <- tree(Occupancy~., data=train)
+pred1 <- predict(tree, newdata=test, type="class")
+time1 <- Sys.time() - time1
+
+acc1 <- mean(pred1==test$Occupancy)
+table(pred1, test$Occupancy)
+mcc1 <- mccr(pred1, test$Occupancy)
+print(paste("Decission Tree Accuracy =", acc1))
+print(paste("mcc =", mcc1))
+print(paste("time taken =", time1, "secs"))
+```
+
+## Peform Random Forest:
+
+```{r}
+library(randomForest)
+set.seed(1234)
+
+time2 <- Sys.time()
+rf <- randomForest(Occupancy~., data=train, importance=TRUE)
+pred2 <- predict(rf, newdata=test, type="class")
+time2 <- Sys.time() - time2
+
+acc2 <- mean(pred2==test$Occupancy)
+table(pred2, test$Occupancy)
+mcc2 <- mccr(pred2, test$Occupancy)
+print(paste("Decision Tree Accuracy =", acc2))
+print(paste("mcc =", mcc2))
+print(paste("time taken =", time2, "secs"))
+```
+
+## Perform XGBoost:
+
+```{r}
+#library(xgboost)
+set.seed(1234)
+require(xgboost)
+
+# data must be converted to numeric matrix
+# labels must be 0/1 integers
+train_label <- ifelse(train$Occupancy==1, 1, 0)
+train_matrix <- data.matrix(train[,-6])
+
+test_label <- ifelse(test$Occupancy==1, 1, 0)
+test_matrix <- data.matrix(test[,-6])
+
+# running xgboost and predictions
+time3 <- Sys.time()
+xgb <- xgboost(data=train_matrix, label=train_label, nrounds=100, objective="binary:logistic")
+
+pred3 <- predict(xgb, newdata=test_matrix)
+pred3 <- ifelse(pred3>0.5, 1, 0)
+time3 <- Sys.time() - time3
+
+acc3 <- mean(pred3==test_label)
+mcc3 <- mccr(pred3, test_label)
+table(pred3, test_label)
+print(paste("accuracy =", acc3))
+print(paste("mcc =", mcc3))
+print(paste("time taken =", time3, "secs"))
+
+```
+
+## Perform AdaBoost:
+
+```{r}
+library(adabag)
+require(mccr)
+set.seed(6758)
+
+time4 <- Sys.time()
+adab <- boosting(Occupancy~., data=train, boos=TRUE, mfinal=20, coeflearn='Breiman')
+pred4 <- predict(adab, newdata=test, type="response")
+time4 <- Sys.time() - time4
+
+acc4 <- mean(pred4$class==test$Occupancy)
+mcc4 <- mccr(pred4$class, test$Occupancy)
+table(pred4$class, test$Occupancy)
+print(paste("AdaBoost accuracy =", acc4))
+print(paste("mcc =", mcc4))
+print(paste("time taken =", time4, "secs"))
+```
+
+## Compare the results:
+  For this dataset, the accuracies are nearly the same, with a difference of about 0.0004 between the greatest and least accuracy. Ensemble package AdaBoost and Random Forest have the same accuracy (~0.9948), and so do XGBoost and Decision Tree (~0.9944). Surprisingly, AdaBoost and Random Forest also have the same mcc (~0.9857) while XGBoost has an mcc of ~0.9846 and Decision Tree has one of ~0.9848. The mcc values are not much different from the accuracies (with a difference of about 1%). Their runtimes vary vastly though. Decision tree took the least time with only 0.090 seconds needed for model creation and prediction. XGBoost (which needs the data to be converted to a numeric matrix and labels to be 0/1 integers) takes 1.922 seconds while Random forest (which is more complex than Decision tree) takes 6.108 seconds. Lastly, AdaBoost takes the most time which is 18.885 seconds.

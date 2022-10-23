@@ -30,3 +30,9 @@ You can see the [report here](ML_Algorithms_from_scratch.docx).
 You can see the [repo/code here](https://github.com/zaiquiriw/ml-similarties/tree/main).
 
 You can see the [Regression document here](Regression.pdf), [Classification document here](Classification.pdf), [Clustering document here](Clustering.pdf), and [Dimensionality document here](Dimensionality.pdf).
+
+## Ensemble and Kernel Methods
+
+You can see the [Regression code here](Kernel_Ensemble_Methods/Regression.html) and the [Classification code here]().
+
+You can see the [narrative report here](Kernel_Ensemble_Methods/Kernel_and_Ensemble_Metthods.docx).
