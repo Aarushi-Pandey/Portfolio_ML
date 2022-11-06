@@ -36,3 +36,7 @@ You can see the [Regression document here](Regression.pdf), [Classification docu
 You can see the [Regression document here](Kernel_Ensemble_Methods/Regression.pdf) and the [Classification document here](Kernel_Ensemble_Methods/Classification.pdf).
 
 You can see the [narrative report here](Kernel_Ensemble_Methods/Kernel_and_Ensemble_Metthods.docx).
+
+## ML with sklearn
+
+You can see the [pdf here](ML_with_sklearn.pdf).
