@@ -43,3 +43,8 @@ You can see the [narrative report here](Kernel_Ensemble_Methods/Kernel_and_Ensem
 Gain experience with machine learning in sklearn on a small data set.
 
 You can see the [pdf here](ML_with_sklearn/ML_with_sklearn.pdf).
+
+## Image Classification
+Gain experience with Keras, image classification, and deep learning model variations and embeddings.
+
+You can see the [pdf here](Image_classification/Image_classification.pdf).
